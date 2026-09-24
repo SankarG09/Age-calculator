@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Age Calculator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <main class="card">
+    <p class="eyebrow">A simple date tool</p>
+    <h1>Age Calculator</h1>
+    <p class="intro">Enter your date of birth to see your age in years, months, and days.</p>
+    <form method="post">
+      <label for="birth_date">Date of birth</label>
+      <div class="row">
+        <input id="birth_date" name="birth_date" type="date" required max="{{ today }}" value="{{ birth }}">
+        <button>Calculate age</button>
+      </div>
+    </form>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    {% if result %}
+    <section class="result" aria-live="polite">
+      <h2>Your age</h2>
+      <div class="grid">
+        <div><b>{{ result.years }}</b><span>years</span></div>
+        <div><b>{{ result.months }}</b><span>months</span></div>
+        <div><b>{{ result.days }}</b><span>days</span></div>
+      </div>
+    </section>
+    {% endif %}
+    <footer>Calculated using today's date.</footer>
+  </main>
+</body>
+</html>
