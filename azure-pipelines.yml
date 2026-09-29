@@ -8,13 +8,53 @@ pool:
 
 steps:
   - checkout: self
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: "3.11"
     displayName: "Use Python 3.11"
+
+  # Set SONARQUBE_PROJECT_KEY as an Azure DevOps pipeline variable.
+  - task: SonarQubePrepare@7
+    inputs:
+      SonarQube: "SonarQube"
+      scannerMode: "cli"
+      configMode: "manual"
+      cliProjectKey: "$(SONARQUBE_PROJECT_KEY)"
+      cliSources: "."
+      extraProperties: |
+        sonar.python.version=3.11
+        sonar.exclusions=**/.venv/**,**/venv/**,**/__pycache__/**
+    displayName: "Prepare SonarQube analysis"
+
   - script: |
       python -m pip install --upgrade pip
       python -m pip install -r requirement.txt
     displayName: "Install dependencies"
+
   - script: python -m py_compile app.py
     displayName: "Check Python syntax"
+
+  - task: SonarQubeAnalyze@7
+    displayName: "Run SonarQube analysis"
+
+  - task: SonarQubePublish@7
+    inputs:
+      pollingTimeoutSec: "300"
+    displayName: "Publish SonarQube quality gate"
+
+  - script: docker build --tag age-calculator:$(Build.BuildId) .
+    displayName: "Build Docker image"
+
+  - script: |
+      docker run --detach --name age-calculator-test --publish 8000:8000 age-calculator:$(Build.BuildId)
+      trap 'docker logs age-calculator-test; docker rm --force age-calculator-test' EXIT
+      for attempt in $(seq 1 20); do
+        if curl --fail --silent http://127.0.0.1:8000/ > /dev/null; then
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "Container did not become healthy in time"
+      exit 1
+    displayName: "Smoke test Docker container"
